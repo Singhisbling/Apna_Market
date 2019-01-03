@@ -37,8 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_auth',
     'rest_framework',
+    'django_rest_passwordreset',
+
+    'rest_auth',
+    'rest_framework.authtoken',
+
     'custom_user',
     'accounts',
     'product_management',
@@ -54,14 +58,14 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-AUTH_USER_MODEL = 'accounts.Shop'
+AUTH_USER_MODEL = 'accounts.User'
 
 ROOT_URLCONF = 'local_market.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': ['templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -75,6 +79,18 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'local_market.wsgi.application'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+DEFAULT_EMAIL_FROM = 'Apna Mart <nitesh.rkgit.it@gmail.com>'
+DEFAULT_EMAIL_BCC = ''
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'nitesh.rkgit.it@gmail.com'
+EMAIL_HOST_PASSWORD = '9.y.m.mithunsingh'
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+SERVER_EMAIL = 'nitesh.rkgit.it@gmail.com'
 
 
 # Database

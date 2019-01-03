@@ -23,7 +23,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 # Project Imports
-from .models import Shop
+from .models import User
 from .serializers import (
     CustomTokenSerializer, CustomUserDetailsSerializer, LoginSerializer,
     UserRegistrationSerializer
@@ -67,14 +67,15 @@ class UserRegistrationView(generics.CreateAPIView):
     """
     This API will be used to allow the users to SignUp for the WebApp.
     """
-    queryset = Shop.objects.all()
+    queryset = User.objects.all()
     serializer_class = UserRegistrationSerializer
 
     def post(self, request, *args):
         new_user_serializer = UserRegistrationSerializer(data=request.data)
         if new_user_serializer.is_valid():
             new_user = new_user_serializer.create(request.data)
-            if new_user:
+            response_data = new_user.get('success')
+            if response_data:
                 mail_subject = 'Activate your account'
                 current_site = get_current_site(request)
                 message = render_to_string(
@@ -101,6 +102,13 @@ class UserRegistrationView(generics.CreateAPIView):
                 return Response(
                     data, status=status.HTTP_201_CREATED
                 )
+
+            else:
+                data = {
+                    "message": "kindly select shop type",
+                    "success": "false"
+                }
+                return Response(data)
 
         data = {
             "message": new_user_serializer.errors,
@@ -170,7 +178,7 @@ class LoginView(GenericAPIView):
                 context={'request': self.request}
             )
 
-        uqs = Shop.objects.get(id=serializer.data.get('user'))
+        uqs = User.objects.get(id=serializer.data.get('user'))
         data = {
             "success": "true",
             "user": {
@@ -198,7 +206,8 @@ class LoginView(GenericAPIView):
 def activate(request, uidb64, token):
     try:
         uid = force_text(urlsafe_base64_decode(uidb64))
-        user = Shop.objects.get(pk=uid)
+        print(uid)
+        user = User.objects.get(id=uid)
     except(TypeError, ValueError, OverflowError, Shop.DoesNotExist):
         user = None
     if user is not None and account_activation_token.check_token(user, token):

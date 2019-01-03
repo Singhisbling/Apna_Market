@@ -13,14 +13,22 @@ USER_TYPE = (
     ('seller', 'Seller'),
 )
 
+SELLER_TYPE = (
+    ('Grocery', 'GROCERY'),
+    ('clothing', 'CLOTHING'),
+    ('construction and building materials', 'CONSTRUCTION AND BUILDING MATERIALS'),
+)
 
-class Shop(AbstractEmailUser):
+
+class User(AbstractEmailUser):
     # Attributes
-
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     user_type = models.CharField(
         choices=USER_TYPE, max_length=30
+    )
+    shop_type = models.CharField(
+        choices=SELLER_TYPE, max_length=100, blank=True, null=True
     )
     shop_name = models.CharField(max_length=250)
 
@@ -30,10 +38,18 @@ class Shop(AbstractEmailUser):
                               u'+(country code)(number)x(extension) where the '
                               u'extension part is optional.'
     )
-    address1 = models.CharField(max_length=500)
-    address2 = models.CharField(max_length=500, blank=True, null=True)
-    country = CountryField()
-    state = models.CharField(max_length=50, blank=True, null=True)
-    city = models.CharField(max_length=50, blank=True, null=True)
-    pin_code = models.CharField(max_length=15)
+    account_verified = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name_plural = "User"
+        verbose_name = 'User'
+
+
+class Shop(models.Model):
+    pass
+
+
+class Address(models.Model):
+    pass
+
 

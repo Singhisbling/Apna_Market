@@ -13,7 +13,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 # Project Imports
 
-from .models import Shop
+from .models import User
 
 # Get the UserModel
 UserModel = get_user_model()
@@ -33,10 +33,10 @@ class CustomUserDetailsSerializer(serializers.ModelSerializer):
     User model w/o password
     """
     class Meta:
-        model = Shop
+        model = User
         fields = (
-            'pk', 'email', 'shop_name', 'address1',
-            'address2', 'country', 'state', 'city', 'pin_code', 'first_name',
+            'pk', 'email', 'shop_name',
+            'first_name',
             'last_name', 'user_type', 'phone_number'
         )
         read_only_fields = ('email', )
@@ -49,7 +49,7 @@ class LoginSerializer(serializers.Serializer):
     def _validate_email(self, email, password):
         if email and password:
             user = authenticate(email=email, password=password)
-            if not Shop.objects.get(email=email).is_active:
+            if not User.objects.get(email=email).is_active:
                 data = {
                     "message": "This account is inactive. Please activate "
                                "your account using the verification link sent "
@@ -108,21 +108,21 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Shop
+        model = User
         fields = (
-            'pk', 'email', 'shop_name', 'address1',
-            'address2', 'country', 'state', 'city', 'pin_code', 'first_name',
-            'last_name', 'user_type', 'phone_number', 'password1', 'password2',
+            'pk', 'email', 'shop_name',
+            'first_name',
+            'last_name', 'user_type', 'shop_type', 'phone_number', 'password1', 'password2',
         )
 
     def validate_email_password(self, data):
         json_data = {"success": "false"}
         email_validation = None
         try:
-            email_validation = Shop.objects.get(
+            email_validation = User.objects.get(
                 email__iexact=data['email']
             )
-        except Shop.DoesNotExist:
+        except User.DoesNotExist:
             pass
 
         if data['password1'] != data['password2'] and email_validation:
@@ -153,35 +153,36 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Check if the two password fields & email are valid
         self.validate_email_password(validated_data)
-
-        user_qs = Shop.objects.create_user(
-            email=validated_data.get('email', ''),
-            password=validated_data.get('password1', ''),
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', ''),
-            phone_number=validated_data.get('phone_number', ''),
-            user_type=validated_data.get('user_type', ''),
-            shop_name=validated_data.get('company_name', ''),
-            address1=validated_data.get('address1', ''),
-            address2=validated_data.get('address2', ''),
-            country=validated_data.get('country', ''),
-            state=validated_data.get('state', ''),
-            city=validated_data.get('city', ''),
-            pin_code=validated_data.get('pin_code', ''),
-        )
-        user = authenticate(
-            email=validated_data.get('email', ''),
-            password=validated_data.get('password1', '')
-        )
-        token, created = TokenModel.objects.get_or_create(user=user)
-        user_qs.is_active = False
-        user_qs.save()
-        data = {
-            "user": {
-                "id": user_qs.id,
-                "email": validated_data.get('email', '')
-            },
-            "access_token": token.key,
-            "authenticate_user": user
-        }
-        return data
+        if (validated_data.get('user_type') == 'seller' and validated_data.get('shop_type')) or validated_data.get('user_type') == 'buyer':
+            user_qs = User.objects.create_user(
+                email=validated_data.get('email', ''),
+                password=validated_data.get('password1', ''),
+                first_name=validated_data.get('first_name', ''),
+                last_name=validated_data.get('last_name', ''),
+                phone_number=validated_data.get('phone_number', ''),
+                user_type=validated_data.get('user_type', ''),
+                shop_name=validated_data.get('shop_name', ''),
+                shop_type=validated_data.get('shop_type', ''),
+            )
+            user = authenticate(
+                email=validated_data.get('email', ''),
+                password=validated_data.get('password1', '')
+            )
+            token, created = TokenModel.objects.get_or_create(user=user)
+            user_qs.is_active = False
+            user_qs.save()
+            data = {
+                "user": {
+                    "id": user_qs.id,
+                    "email": validated_data.get('email', '')
+                },
+                "access_token": token.key,
+                "authenticate_user": user,
+                "success": True
+            }
+            return data
+        else:
+            data = {
+                "success": False
+            }
+            return data
