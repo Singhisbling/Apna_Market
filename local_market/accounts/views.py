@@ -23,10 +23,10 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 # Project Imports
-from .models import User
+from .models import User, Buyer, Seller
 from .serializers import (
-    CustomTokenSerializer, CustomUserDetailsSerializer, LoginSerializer,
-    UserRegistrationSerializer
+    CustomTokenSerializer, UserDetailsSerializer, LoginSerializer,
+    BuyerRegistrationSerializer, SellerRegistrationSerializer
 )
 from .tokens import account_activation_token
 
@@ -37,7 +37,7 @@ sensitive_post_parameters_m = method_decorator(
 )
 
 
-class CustomUserDetailsView(RetrieveUpdateAPIView):
+class UserDetailsView(RetrieveUpdateAPIView):
     """
     Reads and updates UserModel fields
     Accepts GET, PUT, PATCH methods.
@@ -48,7 +48,7 @@ class CustomUserDetailsView(RetrieveUpdateAPIView):
 
     Returns UserModel fields.
     """
-    serializer_class = CustomUserDetailsSerializer
+    serializer_class = UserDetailsSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
@@ -63,59 +63,117 @@ class CustomUserDetailsView(RetrieveUpdateAPIView):
         return get_user_model().objects.none()
 
 
-class UserRegistrationView(generics.CreateAPIView):
+class BuyerRegistrationView(generics.CreateAPIView):
     """
-    This API will be used to allow the users to SignUp for the WebApp.
+    This API will be used to allow the Buyer to SignUp for the WebApp.
     """
-    queryset = User.objects.all()
-    serializer_class = UserRegistrationSerializer
+    queryset = Buyer.objects.all()
+    serializer_class = BuyerRegistrationSerializer
 
     def post(self, request, *args):
-        new_user_serializer = UserRegistrationSerializer(data=request.data)
-        if new_user_serializer.is_valid():
-            new_user = new_user_serializer.create(request.data)
-            response_data = new_user.get('success')
-            if response_data:
-                mail_subject = 'Activate your account'
-                current_site = get_current_site(request)
-                message = render_to_string(
-                    'accounts/acc_active_email.html', {
-                        'user': new_user.get('authenticate_user'),
-                        'domain': current_site.domain,
-                        'uid': urlsafe_base64_encode(force_bytes(
-                            new_user.get('authenticate_user').pk
-                        )),
-                        'token': account_activation_token.make_token(
-                            new_user.get('authenticate_user')
-                        ),
+        try:
+            User.objects.get(email=request.data.get('email'))
+        except User.DoesNotExist:
+            new_user_serializer = BuyerRegistrationSerializer(data=request.data)
+            if new_user_serializer.is_valid():
+                new_user = new_user_serializer.create(request.data)
+                if new_user:
+                    mail_subject = 'Activate your account'
+                    current_site = get_current_site(request)
+                    message = render_to_string(
+                        'accounts/registration/acc_active_email.html', {
+                            'user': new_user.get('authenticate_user'),
+                            'domain': current_site.domain,
+                            'uid': urlsafe_base64_encode(force_bytes(
+                                new_user.get('authenticate_user').pk
+                            )),
+                            'token': account_activation_token.make_token(
+                                new_user.get('authenticate_user')
+                            ),
+                        }
+                    )
+                    email = EmailMultiAlternatives(
+                        mail_subject, message, settings.DEFAULT_EMAIL_FROM,
+                        to=[new_user.get('user').get('email')]
+                    )
+                    email.send()
+                    data = {
+                        "success": "true",
+                        "message": "Email confirmation has been sent. Please check"
                     }
-                )
-                email = EmailMultiAlternatives(
-                    mail_subject, message, settings.DEFAULT_EMAIL_FROM,
-                    to=[new_user.get('user').get('email')]
-                )
-                email.send()
-                data = {
-                    "success": "true",
-                    "message": "Email confirmation has been sent. Please check"
-                }
-                return Response(
-                    data, status=status.HTTP_201_CREATED
-                )
+                    return Response(
+                        data, status=status.HTTP_201_CREATED
+                    )
 
-            else:
-                data = {
-                    "message": "kindly select shop type",
+            data = {
+                "message": new_user_serializer.errors,
+                "success": "false"
+            }
+            return Response(
+                data, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+                data={
+                    "message": "User already exist with this email address",
                     "success": "false"
                 }
-                return Response(data)
+            )
 
-        data = {
-            "message": new_user_serializer.errors,
-            "success": "false"
-        }
+
+class SellerRegistrationView(generics.CreateAPIView):
+    """
+    This API will be used to allow the Buyer to SignUp for the WebApp.
+    """
+    queryset = Seller.objects.all()
+    serializer_class = SellerRegistrationSerializer
+
+    def post(self, request, *args):
+        new_user_serializer = SellerRegistrationSerializer(data=request.data)
+        try:
+            User.objects.get(email=request.data.get('email'))
+        except User.DoesNotExist:
+            if new_user_serializer.is_valid():
+                new_user = new_user_serializer.create(request.data)
+                if new_user:
+                    mail_subject = 'Activate your account'
+                    current_site = get_current_site(request)
+                    message = render_to_string(
+                        'accounts/registration/acc_active_email.html', {
+                            'user': new_user.get('authenticate_user'),
+                            'domain': current_site.domain,
+                            'uid': urlsafe_base64_encode(force_bytes(
+                                new_user.get('authenticate_user').pk
+                            )),
+                            'token': account_activation_token.make_token(
+                                new_user.get('authenticate_user')
+                            ),
+                        }
+                    )
+                    email = EmailMultiAlternatives(
+                        mail_subject, message, settings.DEFAULT_EMAIL_FROM,
+                        to=[new_user.get('user').get('email')]
+                    )
+                    email.send()
+                    data = {
+                        "success": "true",
+                        "message": "Email confirmation has been sent. Please check"
+                    }
+                    return Response(
+                        data, status=status.HTTP_201_CREATED
+                    )
+
+            data = {
+                "message": new_user_serializer.errors,
+                "success": "false"
+            }
+            return Response(
+                data, status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(
-            data, status=status.HTTP_400_BAD_REQUEST
+            data={
+                "message": "User already exist with this email address",
+                "success": "false"
+            }
         )
 
 
@@ -208,7 +266,7 @@ def activate(request, uidb64, token):
         uid = force_text(urlsafe_base64_decode(uidb64))
         print(uid)
         user = User.objects.get(id=uid)
-    except(TypeError, ValueError, OverflowError, Shop.DoesNotExist):
+    except(TypeError, ValueError, OverflowError, User.DoesNotExist):
         user = None
     if user is not None and account_activation_token.check_token(user, token):
         user.is_active = True

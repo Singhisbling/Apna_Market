@@ -25,6 +25,7 @@ admin.site.index_title = "APNA MART Admin Panel"
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^', include('accounts.urls', namespace='accounts')),
-    url(r'^auth/', include('rest_auth.urls')),
+    url(r'^', include('rest_auth.urls')),
+
 ]
 
